@@ -6,7 +6,8 @@ const codeReader = new ZXing.BrowserMultiFormatReader();
 let videoStream; // A variable to keep track of the video stream
 
 window.addEventListener("load", () => {
-  codeReader.listVideoInputDevices()
+  codeReader
+    .listVideoInputDevices()
     .then((videoInputDevices) => {
       if (videoInputDevices.length > 0) {
         selectedDeviceId = videoInputDevices[0].deviceId;
@@ -23,23 +24,25 @@ window.addEventListener("load", () => {
 });
 
 function startScanning(deviceId) {
-  codeReader.decodeFromVideoDevice(deviceId, "scanner", (result, err) => {
-    if (result) {
-      console.log(result.text);
-      barcodeResultElement.textContent = "Barcode Detected"; // Display a success message
-      sendBarcodeData(result.text); // Call your function with the scanned barcode
-      stopScanning(); // Stop the scanning and hide the video element
-    } else if (err && !(err instanceof ZXing.NotFoundException)) {
-      console.error(err);
-    }
-  }).then(stream => {
-    videoStream = stream; // Keep track of the stream to stop it later
-  });
+  codeReader
+    .decodeFromVideoDevice(deviceId, "scanner", (result, err) => {
+      if (result) {
+        console.log(result.text);
+        barcodeResultElement.textContent = "Barcode Detected"; // Display a success message
+        sendBarcodeData(result.text); // Call your function with the scanned barcode
+        stopScanning(); // Stop the scanning and hide the video element
+      } else if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error(err);
+      }
+    })
+    .then((stream) => {
+      videoStream = stream; // Keep track of the stream to stop it later
+    });
 }
 
 function stopScanning() {
   if (videoStream) {
-    videoStream.getTracks().forEach(track => track.stop()); // Stop each track of the stream
+    videoStream.getTracks().forEach((track) => track.stop()); // Stop each track of the stream
   }
   videoElement.style.display = "none"; // Hide the video element
 }
@@ -50,8 +53,38 @@ libraryLogo.addEventListener("click", () => {
   window.location.reload(); // Refresh the page
 });
 
+// function sendBarcodeData(barcode) {
+//   const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
+
+//   fetch(`${apiURL}?barcode=${barcode}`)
+//     .then((response) => response.json())
+//     .then((data) => {
+//       const transaction = data.transactions.find((t) => t.ID == barcode);
+//       const resultCard = document.getElementById("result-card");
+//       resultCard.innerHTML = "";
+//       if (transaction) {
+//         const userDetails = data.users.find(user => user.Roll === transaction.IssueBy);
+//         resultCard.innerHTML = `
+//           <h3>Barcode : ${barcode}</h3>
+//           <p><b>Book Name</b> : ${transaction.BookName}</p>
+//           <p><b>Issued By</b> : ${userDetails ? userDetails.Name : "Unknown"}</p>
+//           <p><b>Issue Date</b> : ${new Date(transaction.IssueDate).toLocaleDateString()}</p>
+//           <p><b>Due Date</b> : ${new Date(transaction.DueDate).toLocaleDateString()}</p>
+//         `;
+//         resultCard.style.display = "block";
+//       } else {
+//         barcodeResultElement.textContent = "No transaction found for this barcode.";
+//       }
+//     })
+//     .catch((error) => {
+//       console.error("Error fetching the API data:", error);
+//       barcodeResultElement.textContent = "Error fetching data.";
+//     });
+// }
+
 function sendBarcodeData(barcode) {
-  const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
+  const apiURL =
+    "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
 
   fetch(`${apiURL}?barcode=${barcode}`)
     .then((response) => response.json())
@@ -60,23 +93,84 @@ function sendBarcodeData(barcode) {
       const resultCard = document.getElementById("result-card");
       resultCard.innerHTML = "";
       if (transaction) {
-        const userDetails = data.users.find(user => user.Roll === transaction.IssueBy);
-        resultCard.innerHTML = `
-          <h3>Barcode : ${barcode}</h3>
-          <p><b>Book Name</b> : ${transaction.BookName}</p>
-          <p><b>Issued By</b> : ${userDetails ? userDetails.Name : "Unknown"}</p>
-          <p><b>Issue Date</b> : ${new Date(transaction.IssueDate).toLocaleDateString()}</p>
-          <p><b>Due Date</b> : ${new Date(transaction.DueDate).toLocaleDateString()}</p>
+        const userDetails = data.users.find(
+          (user) => user.Roll === transaction.IssueBy
+        );
+        let contentHTML = `
+          <h3>Barcode: ${barcode}</h3>
+          <p><b>Book Name</b>: ${transaction.BookName}</p>
+          <p><b>Issued By</b>: ${userDetails ? userDetails.Name : "Unknown"}</p>
         `;
+
+        // Check if dates are empty and provide input fields if they are
+        if (!transaction.IssueDate || !transaction.DueDate) {
+          contentHTML += `
+            <div>
+            <b>
+            <label for="issue-date">Issue Date:</label>
+            </b>
+            <input type="date" id="issue-date" name="issue-date" ${
+              transaction.IssueDate
+                ? `value="${
+                    new Date(transaction.IssueDate).toISOString().split("T")[0]
+                  }"`
+                : ""
+            } required>
+            <b>
+            <label for="due-date">Due Date:</label>
+            </b>
+              <input type="date" id="due-date" name="due-date" ${
+                transaction.DueDate
+                  ? `value="${
+                      new Date(transaction.DueDate).toISOString().split("T")[0]
+                    }"`
+                  : ""
+              } required>
+              <button onclick="updateDates(${barcode})">Update Dates</button>
+            </div>
+          `;
+        } else {
+          contentHTML += `
+            <p><b>Issue Date</b>: ${new Date(
+              transaction.IssueDate
+            ).toLocaleDateString()}</p>
+            <p><b>Due Date</b>: ${new Date(
+              transaction.DueDate
+            ).toLocaleDateString()}</p>
+          `;
+        }
+
+        resultCard.innerHTML = contentHTML;
         resultCard.style.display = "block";
       } else {
-        barcodeResultElement.textContent = "No transaction found for this barcode.";
+        barcodeResultElement.textContent =
+          "No transaction found for this barcode.";
       }
     })
     .catch((error) => {
       console.error("Error fetching the API data:", error);
       barcodeResultElement.textContent = "Error fetching data.";
     });
+}
+
+function updateDates(barcode) {
+  const issueDate = document.getElementById("issue-date").value;
+  const dueDate = document.getElementById("due-date").value;
+
+  // Assuming your API supports POST requests to update data
+  fetch(`${apiURL}?barcode=${barcode}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ issueDate, dueDate }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert("Dates updated successfully!");
+      sendBarcodeData(barcode); // Refresh the data on UI
+    })
+    .catch((error) => console.error("Failed to update dates", error));
 }
 
 // function sendBarcodeData(barcode) {
