@@ -90,7 +90,7 @@ function sendBarcodeData(barcode) {
         resultCard.style.display = "block";
       } else {
         barcodeResultElement.textContent =
-          "No transaction found for this barcode.";
+        `No Book found for this barcode: ${barcode}.`;
       }
     })
     .catch((error) => {
