@@ -11,13 +11,6 @@ body {
   ); /* Gradient background maintained on body */
 }
 
-.top-bar {
-  background-color: #4b2f43; /* A shade matching the gradient */
-  color: white;
-  padding: 10px 20px;
-  text-align: center;
-}
-
 .full-screen-wrapper {
   display: flex;
   align-items: center;
@@ -62,20 +55,17 @@ b {
   color: #c1b8d0;
 }
 
-/* .container {
-  text-align: center;
-  width: 90%; 
-} */
-
-/* button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  } */
+button {
+  padding: 10px 25px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  background: linear-gradient(
+    135deg,
+    #0b2347,
+    #4b2f43
+  );
+  font-weight: bolder;
+}

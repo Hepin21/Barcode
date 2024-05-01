@@ -52,9 +52,9 @@ libraryLogo.addEventListener("click", () => {
   startScanning(selectedDeviceId); // Restart the scanning process
   window.location.reload(); // Refresh the page
 });
-
 function sendBarcodeData(barcode) {
-  const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
+  const apiURL =
+    "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
 
   fetch(`${apiURL}?barcode=${barcode}`)
     .then((response) => response.json())
@@ -63,27 +63,34 @@ function sendBarcodeData(barcode) {
       const resultCard = document.getElementById("result-card");
       resultCard.innerHTML = "";
       if (transaction) {
-        const userDetails = data.users.find(user => user.Roll === transaction.IssueBy);
-        let contentHTML = `<h3>Barcode: ${barcode}</h3><p><b>Book Name</b>: ${transaction.BookName}</p>`;
-
-        contentHTML += `
-          <div>
-            <label for="roll-input">Roll Number (Required):</label>
-            <input type="number" id="roll-input" name="roll-input" value="${userDetails ? userDetails.Roll : ''}" required>
-          </div>
-          <div>
-            <label for="issue-date">Issue Date (Required):</label>
-            <input type="date" id="issue-date" name="issue-date" value="${transaction.IssueDate ? new Date(transaction.IssueDate).toISOString().split('T')[0] : ''}" required>
-            <label for="due-date">Due Date (Required):</label>
-            <input type="date" id="due-date" name="due-date" value="${transaction.DueDate ? new Date(transaction.DueDate).toISOString().split('T')[0] : ''}" required>
-          </div>
-          <button onclick="updateTransactionDetails(${barcode})">Update Details</button>
-        `;
-
-        resultCard.innerHTML = contentHTML;
+        if (transaction.IssueBy) {
+          const userDetails = data.users.find(
+            (user) => user.Roll === transaction.IssueBy
+          );
+          resultCard.innerHTML = `
+            <h3>Barcode : ${barcode}</h3>
+            <p><b>Book Name</b> : ${transaction.BookName}</p>
+            <p><b>Issued By</b> : ${
+              userDetails ? userDetails.Name : "Unknown"
+            } (Roll: ${userDetails ? userDetails.Roll : "N/A"})</p>
+            <p><b>Issue Date</b> : ${new Date(
+              transaction.IssueDate
+            ).toLocaleDateString()}</p>
+            <p><b>Due Date</b> : ${new Date(
+              transaction.DueDate
+            ).toLocaleDateString()}</p>
+          `;
+        } else {
+          resultCard.innerHTML = `
+            <h3>Barcode : ${barcode}</h3>
+            <p><b>Book Name</b> : ${transaction.BookName}</p>
+            <button onclick="issueBook('${barcode}')">Issue Book</button>
+          `;
+        }
         resultCard.style.display = "block";
       } else {
-        barcodeResultElement.textContent = "No transaction found for this barcode.";
+        barcodeResultElement.textContent =
+          "No transaction found for this barcode.";
       }
     })
     .catch((error) => {
@@ -91,27 +98,41 @@ function sendBarcodeData(barcode) {
       barcodeResultElement.textContent = "Error fetching data.";
     });
 }
+function issueBook(barcode) {
 
+  const rollNumber = prompt("Please enter your Roll Number:");
+  if (!rollNumber) {
+    alert("Roll Number is required to issue a book.");
+    return;
+  }
+  console.log("Issue book with barcode:", barcode);
 
-function updateTransactionDetails(barcode) {
-  const roll = document.getElementById('roll-input').value;
-  const issueDate = document.getElementById('issue-date').value;
-  const dueDate = document.getElementById('due-date').value;
-  
-  fetch(`${apiURL}?barcode=${barcode}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ roll, issueDate, dueDate }),
+  const currentDate = new Date();
+  const dueDate = new Date();
+  dueDate.setDate(currentDate.getDate() + 15);
+
+  const issueData = {
+    barcode: barcode,
+    // issueBy: "RollNumberHere", 
+    issueBy: rollNumber,
+    issueDate: currentDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
+    dueDate: dueDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec", {
+    method: "POST",
+    contentType: "application/json",
+    body: JSON.stringify(issueData),
   })
-  .then(response => response.json())
-  .then(data => {
-    alert('Transaction details updated successfully!');
-    sendBarcodeData(barcode); // Refresh the data on UI
-  })
-  .catch(error => console.error('Failed to update transaction details', error));
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Book issued successfully:", data);
+      alert("Book issued successfully.");
+      // Refresh or update UI as needed
+    })
+    .catch((error) => console.error("Error issuing book:", error));
 }
+
 // function sendBarcodeData(barcode) {
 //   const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
 
@@ -140,105 +161,6 @@ function updateTransactionDetails(barcode) {
 //       barcodeResultElement.textContent = "Error fetching data.";
 //     });
 // }
-
-// function sendBarcodeData(barcode) {
-//   const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
-
-//   fetch(`${apiURL}?barcode=${barcode}`)
-//     .then((response) => response.json())
-//     .then((data) => {
-//       const transaction = data.transactions.find((t) => t.ID == barcode);
-//       const resultCard = document.getElementById("result-card");
-//       resultCard.innerHTML = "";
-//       if (transaction) {
-//         const userDetails = data.users.find(user => user.Roll === transaction.IssueBy);
-//         let contentHTML = `
-//           <h3>Barcode: ${barcode}</h3>
-//           <p><b>Book Name</b>: ${transaction.BookName}</p>
-//         `;
-
-//         if (!userDetails) {
-//           contentHTML += `
-//             <div>
-//               <label for="roll-input">Enter Roll:</label>
-//               <input type="number" id="roll-input" name="roll-input" required>
-//               <button onclick="updateRoll(${barcode})">Update Roll</button>
-//             </div>
-//           `;
-//         } else {
-//           contentHTML += `<p><b>Issued By</b>: ${userDetails.Name} (Roll: ${userDetails.Roll})</p>`;
-//         }
-
-//         // Check if dates are empty and provide input fields if they are
-//         if (!transaction.IssueDate || !transaction.DueDate) {
-//           contentHTML += `
-//             <div>
-//               <label for="issue-date">Issue Date:</label>
-//               <input type="date" id="issue-date" name="issue-date" ${transaction.IssueDate ? `value="${new Date(transaction.IssueDate).toISOString().split('T')[0]}"` : ''} required>
-//               <label for="due-date">Due Date:</label>
-//               <input type="date" id="due-date" name="due-date" ${transaction.DueDate ? `value="${new Date(transaction.DueDate).toISOString().split('T')[0]}"` : ''} required>
-//               <button onclick="updateDates(${barcode})">Update Dates</button>
-//             </div>
-//           `;
-//         } else {
-//           contentHTML += `
-//             <p><b>Issue Date</b>: ${new Date(transaction.IssueDate).toLocaleDateString()}</p>
-//             <p><b>Due Date</b>: ${new Date(transaction.DueDate).toLocaleDateString()}</p>
-//           `;
-//         }
-
-//         resultCard.innerHTML = contentHTML;
-//         resultCard.style.display = "block";
-//       } else {
-//         barcodeResultElement.textContent = "No transaction found for this barcode.";
-//       }
-//     })
-//     .catch((error) => {
-//       console.error("Error fetching the API data:", error);
-//       barcodeResultElement.textContent = "Error fetching data.";
-//     });
-// }
-
-
-// function updateDates(barcode) {
-//   const issueDate = document.getElementById("issue-date").value;
-//   const dueDate = document.getElementById("due-date").value;
-
-//   // Assuming your API supports POST requests to update data
-//   fetch(`${apiURL}?barcode=${barcode}`, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({ issueDate, dueDate }),
-//   })
-//     .then((response) => response.json())
-//     .then((data) => {
-//       alert("Dates updated successfully!");
-//       sendBarcodeData(barcode); // Refresh the data on UI
-//     })
-//     .catch((error) => console.error("Failed to update dates", error));
-// }
-
-// function updateRoll(barcode) {
-//   const roll = document.getElementById('roll-input').value;
-  
-//   // Assuming your API supports POST requests to update data
-//   fetch(`${apiURL}?barcode=${barcode}`, {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({ roll }),
-//   })
-//   .then(response => response.json())
-//   .then(data => {
-//     alert('Roll updated successfully!');
-//     sendBarcodeData(barcode); // Refresh the data on UI
-//   })
-//   .catch(error => console.error('Failed to update roll', error));
-// }
-
 
 // function sendBarcodeData(barcode) {
 //   const apiURL = "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
@@ -296,3 +218,98 @@ function updateTransactionDetails(barcode) {
 //         }
 //     });
 // }
+
+//*********************************************************************************
+// function sendBarcodeData(barcode) {
+//   const apiURL =
+//     "https://script.google.com/macros/s/AKfycbxl2Fopw-HBNssw2265SPcxFPugv91YuV2R0eqoooqxxxzLCBsNBuaIHmEYUX1a3oRMrQ/exec";
+
+//   fetch(`${apiURL}?barcode=${barcode}`)
+//     .then((response) => response.json())
+//     .then((data) => {
+//       const transaction = data.transactions.find((t) => t.ID == barcode);
+//       const resultCard = document.getElementById("result-card");
+//       resultCard.innerHTML = "";
+//       if (transaction) {
+//         const userDetails = data.users.find(
+//           (user) => user.Roll === transaction.IssueBy
+//         );
+//         let contentHTML = `
+//           <h3>Barcode: ${barcode}</h3>
+//           <p><b>Book Name</b>: ${transaction.BookName}</p>
+//           <p><b>Issued By</b>: ${userDetails ? userDetails.Name : "Unknown"}</p>
+//         `;
+
+//         // Check if dates are empty and provide input fields if they are
+//         if (!transaction.IssueDate || !transaction.DueDate) {
+//           contentHTML += `
+//             <div>
+//             <b>
+//             <label for="issue-date">Issue Date:</label>
+//             </b>
+//             <input type="date" id="issue-date" name="issue-date" ${
+//               transaction.IssueDate
+//                 ? `value="${
+//                     new Date(transaction.IssueDate).toISOString().split("T")[0]
+//                   }"`
+//                 : ""
+//             } required>
+//             <br>
+//             <b>
+//             <label for="due-date">Due Date:</label>
+//             </b>
+//               <input type="date" id="due-date" name="due-date" ${
+//                 transaction.DueDate
+//                   ? `value="${
+//                       new Date(transaction.DueDate).toISOString().split("T")[0]
+//                     }"`
+//                   : ""
+//               } required>
+//               <br/>
+//               <button onclick="updateDates(${barcode})">Update Dates</button>
+//             </div>
+//           `;
+//         } else {
+//           contentHTML += `
+//             <p><b>Issue Date</b>: ${new Date(
+//               transaction.IssueDate
+//             ).toLocaleDateString()}</p>
+//             <p><b>Due Date</b>: ${new Date(
+//               transaction.DueDate
+//             ).toLocaleDateString()}</p>
+//           `;
+//         }
+
+//         resultCard.innerHTML = contentHTML;
+//         resultCard.style.display = "block";
+//       } else {
+//         barcodeResultElement.textContent =
+//           "No transaction found for this barcode.";
+//       }
+//     })
+//     .catch((error) => {
+//       console.error("Error fetching the API data:", error);
+//       barcodeResultElement.textContent = "Error fetching data.";
+//     });
+// }
+
+// function updateDates(barcode) {
+//   const issueDate = document.getElementById("issue-date").value;
+//   const dueDate = document.getElementById("due-date").value;
+
+//   // Assuming your API supports POST requests to update data
+//   fetch(`${apiURL}?barcode=${barcode}`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({ issueDate, dueDate }),
+//   })
+//     .then((response) => response.json())
+//     .then((data) => {
+//       alert("Dates updated successfully!");
+//       sendBarcodeData(barcode); // Refresh the data on UI
+//     })
+//     .catch((error) => console.error("Failed to update dates", error));
+// }
+//*********************************************************
